@@ -10,10 +10,19 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
 )
 
 func main() {
 	app := fiber.New()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:  []string{"http://localhost:5173"},
+		AllowMethods:  []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:  []string{"Content-Type", "Idempotency-Key"},
+		ExposeHeaders: []string{"Idempotent-Replayed"},
+	}))
+
 	conf := config.Load()
 	dbConnection := connection.GetDB(conf.DB)
 
