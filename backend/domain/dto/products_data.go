@@ -34,3 +34,9 @@ type CreateProductRequest struct {
 	Stock    int    `json:"stock" validate:"gte=0"`
 	IsActive bool   `gorm:"not null;default:true"`
 }
+
+type CreateStockMovementRequest struct {
+	Type string `json:"type" validate:"required,oneof=in out"`
+	Qty  int    `json:"qty" validate:"required,gte=1"`
+	Note string `json:"note"`
+}

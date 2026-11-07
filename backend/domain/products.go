@@ -38,11 +38,8 @@ type ProductsRepository interface {
 }
 
 type StockMovementsRepository interface {
-	FindAll(ctx context.Context) ([]StockMovements, error)
-	FindById(ctx context.Context, id string) (StockMovements, error)
+	FindByProductId(ctx context.Context, productId uint) ([]StockMovements, error)
 	Save(ctx context.Context, c *StockMovements) error
-	Update(ctx context.Context, c *StockMovements) error
-	Delete(ctx context.Context, c *StockMovements) error
 }
 
 type ProductServices interface {
@@ -50,4 +47,8 @@ type ProductServices interface {
 	CreateProduct(ctx context.Context, req dto.CreateProductRequest) error
 	GetProductById(ctx context.Context, id uint) (dto.ProductsData, error)
 	FindBySku(ctx context.Context, sku string) (*Products, error)
+	UpdateProduct(ctx context.Context, id uint, req dto.CreateProductRequest) error
+	DeleteProduct(ctx context.Context, id uint) error
+	CreateStockMovement(ctx context.Context, productId uint, req dto.CreateStockMovementRequest) error
+	FindByProductIdStockMovement(ctx context.Context, productId uint) ([]StockMovements, error)
 }

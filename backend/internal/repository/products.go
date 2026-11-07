@@ -12,8 +12,16 @@ type productsRepository struct {
 	db *gorm.DB
 }
 
+type stockMovementsRepository struct {
+	db *gorm.DB
+}
+
 func NewProducts(db *gorm.DB) domain.ProductsRepository {
 	return &productsRepository{db: db}
+}
+
+func NewStockMovements(db *gorm.DB) domain.StockMovementsRepository {
+	return &stockMovementsRepository{db: db}
 }
 
 func (r *productsRepository) FindAll(ctx context.Context, f dto.ProductFilter) ([]domain.Products, dto.Pagination, error) {
@@ -82,4 +90,17 @@ func (r *productsRepository) Update(ctx context.Context, p *domain.Products) err
 
 func (r *productsRepository) Delete(ctx context.Context, p *domain.Products) error {
 	return r.db.WithContext(ctx).Delete(p).Error
+}
+
+func (r *stockMovementsRepository) FindByProductId(ctx context.Context, productId uint) ([]domain.StockMovements, error) {
+	var movements []domain.StockMovements
+	err := r.db.WithContext(ctx).
+		Where("product_id = ?", productId).
+		Order("created_at DESC").
+		Find(&movements).Error
+	return movements, err
+}
+
+func (r *stockMovementsRepository) Save(ctx context.Context, movement *domain.StockMovements) error {
+	return r.db.WithContext(ctx).Create(movement).Error
 }

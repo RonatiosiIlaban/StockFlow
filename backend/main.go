@@ -29,9 +29,18 @@ func main() {
 
 	app.Get("/welcome", Welcome)
 
+	// Repositories
 	productsRepository := repository.NewProducts(dbConnection)
-	productsServices := services.NewProducts(productsRepository)
+	stockMovementsRepository := repository.NewStockMovements(dbConnection)
+	salesRepository := repository.NewSales(dbConnection)
+
+	// Services
+	productsServices := services.NewProducts(productsRepository, stockMovementsRepository)
+	salesServices := services.NewSales(salesRepository)
+
+	// APIs
 	api.NewProductsApi(app, productsServices)
+	api.NewSalesApi(app, salesServices)
 
 	log.Fatal(app.Listen(conf.Server.Host + ":" + conf.Server.Port))
 }

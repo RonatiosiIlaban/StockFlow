@@ -3,20 +3,24 @@ package services
 import (
 	"backend/domain"
 	"backend/domain/dto"
+	"backend/internal/api"
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 type productServices struct {
-	productsRepository domain.ProductsRepository
+	productsRepository  domain.ProductsRepository
+	movementsRepository domain.StockMovementsRepository
 }
 
-func NewProducts(productsRepository domain.ProductsRepository) domain.ProductServices {
+func NewProducts(productsRepository domain.ProductsRepository, movementsRepository domain.StockMovementsRepository) domain.ProductServices {
 	return &productServices{
-		productsRepository: productsRepository,
+		productsRepository:  productsRepository,
+		movementsRepository: movementsRepository,
 	}
 }
 
@@ -79,4 +83,70 @@ func (s *productServices) FindBySku(ctx context.Context, sku string) (*domain.Pr
 		return nil, err
 	}
 	return &product, nil
+}
+
+func (s *productServices) UpdateProduct(ctx context.Context, id uint, req dto.CreateProductRequest) error {
+	product, err := s.productsRepository.FindById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	product.Sku = req.Sku
+	product.Name = req.Name
+	product.Price = req.Price
+	product.Stock = req.Stock
+	product.IsActive = req.IsActive
+
+	return s.productsRepository.Update(ctx, &product)
+}
+
+func (s *productServices) DeleteProduct(ctx context.Context, id uint) error {
+	product, err := s.productsRepository.FindById(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	return s.productsRepository.Delete(ctx, &product)
+}
+
+func (s *productServices) CreateStockMovement(ctx context.Context, productId uint, req dto.CreateStockMovementRequest) error {
+	product, err := s.productsRepository.FindById(ctx, productId)
+	if err != nil {
+		return err
+	}
+
+	if req.Type == "out" && product.Stock < req.Qty {
+		return api.ErrInsufficientStock
+	}
+
+	if req.Type == "in" {
+		product.Stock += req.Qty
+	} else if req.Type == "out" {
+		product.Stock -= req.Qty
+	}
+
+	now := time.Now()
+	product.LastMovementAt = &now
+
+	if err = s.productsRepository.Update(ctx, &product); err != nil {
+		return err
+	}
+
+	stockMovement := domain.StockMovements{
+		ProductId: product.ID,
+		Type:      req.Type,
+		Qty:       req.Qty,
+		Note:      req.Note,
+	}
+
+	return s.movementsRepository.Save(ctx, &stockMovement)
+}
+
+func (s *productServices) FindByProductIdStockMovement(ctx context.Context, productId uint) ([]domain.StockMovements, error) {
+	stockMovements, err := s.movementsRepository.FindByProductId(ctx, productId)
+	if err != nil {
+		return []domain.StockMovements{}, err
+	}
+
+	return stockMovements, nil
 }

@@ -1,8 +1,18 @@
 package domain
 
 import (
+	"backend/domain/dto"
 	"context"
+	"errors"
 	"time"
+)
+
+var (
+	ErrIdempotencyKeyMismatch     = errors.New("Idempotency-Key sudah dipakai untuk request yang berbeda")
+	ErrProductNotFound            = errors.New("produk tidak ditemukan atau tidak aktif")
+	ErrInsufficientStock          = errors.New("stok tidak cukup")
+	ErrSalesOrderAlreadyCancelled = errors.New("sales order sudah dibatalkan")
+	ErrSalesOrderNotFound         = errors.New("sales order tidak ditemukan")
 )
 
 type SalesOrders struct {
@@ -31,25 +41,11 @@ type IdempotencyKeys struct {
 }
 
 type SalesOrdersRepository interface {
-	FindAll(ctx context.Context) ([]SalesOrders, error)
-	FindById(ctx context.Context, id string) (SalesOrders, error)
-	Save(ctx context.Context, c *SalesOrders) error
-	Update(ctx context.Context, c *SalesOrders) error
-	Delete(ctx context.Context, c *SalesOrders) error
+	CreateSalesOrderWithIdempotency(ctx context.Context, order *SalesOrders, key string) (replayed bool, err error)
+	CancelSalesOrder(ctx context.Context, id string) error
 }
 
-type SalesOrderItemsRepository interface {
-	FindAll(ctx context.Context) ([]SalesOrderItems, error)
-	FindById(ctx context.Context, id string) (SalesOrderItems, error)
-	Save(ctx context.Context, c *SalesOrderItems) error
-	Update(ctx context.Context, c *SalesOrderItems) error
-	Delete(ctx context.Context, c *SalesOrderItems) error
-}
-
-type IdempotencyKeysRepository interface {
-	FindAll(ctx context.Context) ([]IdempotencyKeys, error)
-	FindById(ctx context.Context, key string) (IdempotencyKeys, error)
-	Save(ctx context.Context, c *IdempotencyKeys) error
-	Update(ctx context.Context, c *IdempotencyKeys) error
-	Delete(ctx context.Context, c *IdempotencyKeys) error
+type SalesServices interface {
+	CreateSalesOrderWithIdempotency(ctx context.Context, req dto.CreateSalesOrderRequest, key string) (dto.SalesOrderData, bool, error)
+	CancelSalesOrder(ctx context.Context, id string) error
 }
