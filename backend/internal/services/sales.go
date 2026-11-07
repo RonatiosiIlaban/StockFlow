@@ -106,3 +106,11 @@ func (s *salesServices) GetSalesOrders(ctx context.Context, filter dto.SalesOrde
 	}
 	return result, meta, nil
 }
+
+func (s *salesServices) GetSalesOrderById(ctx context.Context, id string) (dto.SalesOrderData, error) {
+	order, err := s.salesOrdersRepository.FindById(ctx, id)
+	if err != nil {
+		return dto.SalesOrderData{}, err
+	}
+	return toSalesOrderData(order), nil
+}

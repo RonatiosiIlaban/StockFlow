@@ -6,6 +6,7 @@ import (
 	"backend/internal/utility"
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ func NewSalesApi(app *fiber.App, salesServices domain.SalesServices) {
 	}
 
 	app.Get("/api/sales-orders", ca.GET)
+	app.Get("/api/sales-orders/:id", ca.GETBYID)
 	app.Post("/api/sales-orders", ca.CREATE)
 	app.Post("/api/sales-orders/:id/cancel", ca.Cancel)
 }
@@ -48,6 +50,26 @@ func (ca *salesApi) GET(ctx fiber.Ctx) error {
 	}
 
 	return ctx.JSON(dto.ResponseSuccess(orders, meta, http.StatusOK))
+}
+
+func (ca *salesApi) GETBYID(ctx fiber.Ctx) error {
+	var id uint
+	if _, err := fmt.Sscan(ctx.Params("id"), &id); err != nil || id == 0 {
+		return ctx.Status(http.StatusBadRequest).JSON(dto.ResponseError("invalid id parameter", http.StatusBadRequest))
+	}
+
+	c, cancel := context.WithTimeout(ctx.Context(), 10*time.Second)
+	defer cancel()
+
+	order, err := ca.salesServices.GetSalesOrderById(c, fmt.Sprint(id))
+	if err != nil {
+		if errors.Is(err, domain.ErrSalesOrderNotFound) {
+			return ctx.Status(http.StatusNotFound).JSON(dto.ResponseError(err.Error(), http.StatusNotFound))
+		}
+		return ctx.Status(http.StatusInternalServerError).JSON(dto.ResponseError(err.Error(), http.StatusInternalServerError))
+	}
+
+	return ctx.JSON(dto.CreateResponseSuccess(order, "Sales order found successfully", http.StatusOK))
 }
 
 func (ca *salesApi) CREATE(ctx fiber.Ctx) error {
@@ -103,8 +125,10 @@ func (ca *salesApi) Cancel(ctx fiber.Ctx) error {
 	err := ca.salesServices.CancelSalesOrder(c, idParam)
 	if err != nil {
 		switch {
-		case errors.Is(err, domain.ErrProductNotFound):
+		case errors.Is(err, domain.ErrSalesOrderNotFound):
 			return ctx.Status(http.StatusNotFound).JSON(dto.ResponseError(err.Error(), http.StatusNotFound))
+		case errors.Is(err, domain.ErrSalesOrderAlreadyCancelled):
+			return ctx.Status(http.StatusConflict).JSON(dto.ResponseError(err.Error(), http.StatusConflict))
 		default:
 			return ctx.Status(http.StatusInternalServerError).JSON(dto.ResponseError(err.Error(), http.StatusInternalServerError))
 		}

@@ -12,6 +12,7 @@ export type Product = {
 
 export type ProductFilter = {
   search?: string;
+  is_active?: boolean;
   page?: number;
   limit?: number;
 };
@@ -89,7 +90,6 @@ export type StockMovement = {
   created_at: string;
 };
 
-// Struct StockMovements di backend tidak punya json tag, jadi key-nya PascalCase.
 type StockMovementRaw = {
   ID: number;
   ProductId: number;
@@ -108,6 +108,4 @@ export const getStockMovementsByProductId = async (productId: number | string): 
     note: m.Note,
     created_at: m.CreatedAt,
   }));
-}   
-
-
+}

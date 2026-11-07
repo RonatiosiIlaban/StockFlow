@@ -71,6 +71,18 @@ func (r *salesRepository) FindAll(ctx context.Context, f dto.SalesOrderFilter) (
 	return orders, meta, nil
 }
 
+func (r *salesRepository) FindById(ctx context.Context, id string) (domain.SalesOrders, error) {
+	var order domain.SalesOrders
+	res := r.db.WithContext(ctx).Preload("Items").Where("id = ?", id).Limit(1).Find(&order)
+	if res.Error != nil {
+		return domain.SalesOrders{}, res.Error
+	}
+	if res.RowsAffected == 0 {
+		return domain.SalesOrders{}, domain.ErrSalesOrderNotFound
+	}
+	return order, nil
+}
+
 func (r *salesRepository) CreateSalesOrderWithIdempotency(ctx context.Context, order *domain.SalesOrders, idempotencyKey string) (bool, error) {
 	replayed := false
 

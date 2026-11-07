@@ -25,6 +25,7 @@ type TabelProps<T extends { id: number }> = {
     onDetail?: (row: T) => void,
     onEdit?: (row: T) => void,
     onDelete?: (row: T) => void,
+    extraActions?: (row: T) => ReactNode,
 };
 
 const alignClass = {
@@ -43,8 +44,9 @@ const Tabel = <T extends { id: number }>({
     onDetail,
     onEdit,
     onDelete,
+    extraActions,
 }: TabelProps<T>) => {
-    const hasAction = Boolean(onDetail || onEdit || onDelete);
+    const hasAction = Boolean(onDetail || onEdit || onDelete || extraActions);
     const colSpan = columns.length + (hasAction ? 1 : 0);
 
     const totalPage = meta ? meta.total_page ?? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
@@ -96,6 +98,7 @@ const Tabel = <T extends { id: number }>({
                                     {hasAction && (
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">
+                                                {extraActions?.(row)}
                                                 {onDetail && (
                                                     <button
                                                         type="button"

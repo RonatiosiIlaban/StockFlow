@@ -1,42 +1,57 @@
-import { api } from "../config";
+import { api, type ApiResponse } from "../config";
+import type { Meta } from "../components/tabel";
 
-export type SaleOrder = {
+export type SalesOrderStatus = 'CREATED' | 'CANCELLED';
+
+export type SalesOrderItem = {
   id: number;
-  productId: number;
-  quantity: number;
-  totalPrice: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
+  sku: string;
+  qty: number;
+  unit_price: number;
+  subtotal: number;
 };
 
-export type SaleOrderFilter = {
+export type SalesOrder = {
+  id: number;
+  customer: string;
+  status: SalesOrderStatus;
+  total: number;
+  created_at: string;
+  cancelled_at?: string | null;
+  items: SalesOrderItem[];
+};
+
+export type SalesOrderFilter = {
   search?: string;
+  status?: SalesOrderStatus;
+  sort?: 'created_at' | '-created_at' | 'total' | '-total';
   page?: number;
   limit?: number;
 };
 
-export type SaleOrderListResponse = {
-    message?: string,
-    code?: string,
-    data?: SaleOrder[],
-    meta?: {
-        page: number,
-        limit: number,
-        total: number,
-    }
-}
+export type CreateSalesOrderPayload = {
+  customer: string;
+  items: { sku: string; qty: number; unit_price: number }[];
+};
 
-export const getSaleOrders = async (filter: SaleOrderFilter): Promise<SaleOrderListResponse> => {
-  const response = await api.get<SaleOrderListResponse>('/sales-orders', { params: filter });
+export const getSalesOrders = async (filter: SalesOrderFilter): Promise<ApiResponse<SalesOrder[], Meta>> => {
+  const response = await api.get<ApiResponse<SalesOrder[], Meta>>('/sales-orders', { params: filter });
   return response.data;
 }
 
-export const createSaleOrder = async (saleOrder: Omit<SaleOrder, 'id'>): Promise<SaleOrder> => {
-  const response = await api.post<SaleOrder>('/sales-orders', saleOrder);
+export const getSalesOrderById = async (id: number | string): Promise<ApiResponse<SalesOrder>> => {
+  const response = await api.get<ApiResponse<SalesOrder>>(`/sales-orders/${id}`);
   return response.data;
 }
 
-export const cancelSaleOrder = async (id: number): Promise<void> => {
-  await api.post(`/sales-orders/${id}/cancel`);
-}   
+export const createSalesOrder = async (payload: CreateSalesOrderPayload, idempotencyKey: string): Promise<ApiResponse<SalesOrder>> => {
+  const response = await api.post<ApiResponse<SalesOrder>>('/sales-orders', payload, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
+  return response.data;
+}
+
+export const cancelSalesOrder = async (id: number): Promise<ApiResponse<string>> => {
+  const response = await api.post<ApiResponse<string>>(`/sales-orders/${id}/cancel`);
+  return response.data;
+}
