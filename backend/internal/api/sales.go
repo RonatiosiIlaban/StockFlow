@@ -22,8 +22,8 @@ func NewSalesApi(app *fiber.App, salesServices domain.SalesServices) {
 		salesServices: salesServices,
 	}
 
-	app.Post("/sales-orders", ca.CREATE)
-	app.Post("/sales-orders/:id/cancel", ca.Cancel)
+	app.Post("/api/sales-orders", ca.CREATE)
+	app.Post("/api/sales-orders/:id/cancel", ca.Cancel)
 }
 
 func (ca *salesApi) CREATE(ctx fiber.Ctx) error {

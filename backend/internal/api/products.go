@@ -24,13 +24,13 @@ func NewProductsApi(app *fiber.App, productServices domain.ProductServices) {
 		productServices: productServices,
 	}
 
-	app.Get("/products", ca.GET)
-	app.Post("/products", ca.CREATE)
-	app.Get("/products/:id", ca.GETBYID)
-	app.Put("/products/:id", ca.UPDATE)
-	app.Delete("/products/:id", ca.DELETE)
-	app.Post("/products/:id/stock-movements", ca.CreateStockMovement)
-	app.Get("/products/:id/stock-movements", ca.FindByProductIdStockMovement)
+	app.Get("/api/products", ca.GET)
+	app.Post("/api/products", ca.CREATE)
+	app.Get("/api/products/:id", ca.GETBYID)
+	app.Put("/api/products/:id", ca.UPDATE)
+	app.Delete("/api/products/:id", ca.DELETE)
+	app.Post("/api/products/:id/stock-movements", ca.CreateStockMovement)
+	app.Get("/api/products/:id/stock-movements", ca.FindByProductIdStockMovement)
 }
 
 func (ca *productsApi) GET(ctx fiber.Ctx) error {
