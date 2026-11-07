@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ChevronLeft, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, Pencil, Trash2 } from 'lucide-react';
 
 export type Column<T> = {
     key: keyof T & string,
@@ -22,6 +22,7 @@ type TabelProps<T extends { id: number }> = {
     emptyText?: string,
     meta?: Meta,
     onPageChange?: (page: number) => void,
+    onDetail?: (row: T) => void,
     onEdit?: (row: T) => void,
     onDelete?: (row: T) => void,
 };
@@ -39,10 +40,11 @@ const Tabel = <T extends { id: number }>({
     emptyText = 'Belum ada data',
     meta,
     onPageChange,
+    onDetail,
     onEdit,
     onDelete,
 }: TabelProps<T>) => {
-    const hasAction = Boolean(onEdit || onDelete);
+    const hasAction = Boolean(onDetail || onEdit || onDelete);
     const colSpan = columns.length + (hasAction ? 1 : 0);
 
     const totalPage = meta ? meta.total_page ?? Math.max(1, Math.ceil(meta.total / meta.limit)) : 1;
@@ -63,7 +65,7 @@ const Tabel = <T extends { id: number }>({
                                     {col.header}
                                 </th>
                             ))}
-                            {hasAction && <th className="w-24 px-4 py-3 text-right font-medium">Aksi</th>}
+                            {hasAction && <th className="w-32 px-4 py-3 text-right font-medium">Aksi</th>}
                         </tr>
                     </thead>
 
@@ -94,6 +96,17 @@ const Tabel = <T extends { id: number }>({
                                     {hasAction && (
                                         <td className="px-4 py-3">
                                             <div className="flex justify-end gap-1">
+                                                {onDetail && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onDetail(row)}
+                                                        title="Detail"
+                                                        aria-label="Detail"
+                                                        className="rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                                                    >
+                                                        <Eye size={16} />
+                                                    </button>
+                                                )}
                                                 {onEdit && (
                                                     <button
                                                         type="button"

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"backend/domain"
+	"backend/domain/dto"
 	"context"
 	"fmt"
 	"sort"
@@ -17,6 +18,57 @@ type salesRepository struct {
 
 func NewSales(db *gorm.DB) domain.SalesOrdersRepository {
 	return &salesRepository{db: db}
+}
+
+func (r *salesRepository) FindAll(ctx context.Context, f dto.SalesOrderFilter) ([]domain.SalesOrders, dto.Pagination, error) {
+	if f.Page < 1 {
+		f.Page = 1
+	}
+	if f.Limit < 1 {
+		f.Limit = 10
+	}
+	if f.Limit > 100 {
+		f.Limit = 100
+	}
+
+	q := r.db.WithContext(ctx).Model(&domain.SalesOrders{})
+	if f.Search != "" {
+		q = q.Where("customer ILIKE ?", "%"+f.Search+"%")
+	}
+	if f.Status != "" {
+		q = q.Where("status = ?", f.Status)
+	}
+
+	var total int64
+	if err := q.Count(&total).Error; err != nil {
+		return nil, dto.Pagination{}, err
+	}
+
+	sortMap := map[string]string{
+		"created_at": "created_at ASC", "-created_at": "created_at DESC",
+		"total": "total ASC", "-total": "total DESC",
+	}
+	order, ok := sortMap[f.Sort]
+	if !ok {
+		order = "created_at DESC"
+	}
+
+	var orders []domain.SalesOrders
+	if err := q.Preload("Items").
+		Order(order).Order("id DESC").
+		Limit(f.Limit).
+		Offset((f.Page - 1) * f.Limit).
+		Find(&orders).Error; err != nil {
+		return nil, dto.Pagination{}, err
+	}
+
+	meta := dto.Pagination{
+		Page:      f.Page,
+		Limit:     f.Limit,
+		Total:     total,
+		TotalPage: int((total + int64(f.Limit) - 1) / int64(f.Limit)),
+	}
+	return orders, meta, nil
 }
 
 func (r *salesRepository) CreateSalesOrderWithIdempotency(ctx context.Context, order *domain.SalesOrders, idempotencyKey string) (bool, error) {

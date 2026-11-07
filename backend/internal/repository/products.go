@@ -4,7 +4,9 @@ import (
 	"backend/domain"
 	"backend/domain/dto"
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -99,7 +101,15 @@ func (r *productsRepository) Update(ctx context.Context, p *domain.Products) err
 }
 
 func (r *productsRepository) Delete(ctx context.Context, p *domain.Products) error {
-	return r.db.WithContext(ctx).Delete(p).Error
+	err := r.db.WithContext(ctx).Delete(p).Error
+
+	// Produk masih direferensikan stock_movements / sales_order_items
+	// (FK OnDelete:RESTRICT). 23001 = restrict_violation, 23503 = foreign_key_violation.
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && (pgErr.Code == "23001" || pgErr.Code == "23503") {
+		return domain.ErrProductHasHistory
+	}
+	return err
 }
 
 func (r *stockMovementsRepository) FindByProductId(ctx context.Context, productId uint) ([]domain.StockMovements, error) {

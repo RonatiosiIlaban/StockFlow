@@ -3,8 +3,11 @@ package domain
 import (
 	"backend/domain/dto"
 	"context"
+	"errors"
 	"time"
 )
+
+var ErrProductHasHistory = errors.New("Produk tidak bisa dihapus karena sudah memiliki riwayat stok atau penjualan. Nonaktifkan produk ini sebagai gantinya.")
 
 type Products struct {
 	ID              uint              `gorm:"primaryKey"`

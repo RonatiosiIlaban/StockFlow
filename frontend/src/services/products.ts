@@ -1,4 +1,4 @@
-import { api } from "../config";
+import { api, type ApiResponse } from "../config";
 
 export type Product = {
   id: number;
@@ -15,6 +15,13 @@ export type ProductFilter = {
   page?: number;
   limit?: number;
 };
+
+export type ProductDetailResponse = {
+    message?: string,
+    code?: string,
+    data: Product,
+}
+
 
 export type ProductListResponse = {
     message?: string,
@@ -33,18 +40,27 @@ export const getProducts = async (filter: ProductFilter): Promise<ProductListRes
   return response.data;
 }
 
-export const createProduct = async (product: Omit<Product, 'id'>): Promise<Product> => {
-  const response = await api.post<Product>('/products', product);
+export const createProduct = async (product: ProductPayload): Promise<ApiResponse<string>> => {
+  const response = await api.post<ApiResponse<string>>('/products', product);
   return response.data;
 }
 
-export const getProductById = async (id: number): Promise<Product> => {
-  const response = await api.get<Product>(`/products/${id}`);
+export const getProductById = async (id: string): Promise<ProductDetailResponse> => {
+  const response = await api.get<ProductDetailResponse>(`/products/${id}`);
   return response.data;
 }
 
-export const updateProduct = async (id: number, product: Omit<Product, 'id'>): Promise<Product> => {
-  const response = await api.put<Product>(`/products/${id}`, product);
+
+export type ProductPayload = {
+  sku: string;
+  name: string;
+  price: number;
+  stock: number;
+  is_active: boolean;
+};
+
+export const updateProduct = async (id: number, product: ProductPayload): Promise<ApiResponse<string>> => {
+  const response = await api.put<ApiResponse<string>>(`/products/${id}`, product);
   return response.data;
 }
 
@@ -52,13 +68,46 @@ export const deleteProduct = async (id: number): Promise<void> => {
   await api.delete(`/products/${id}`);
 }
 
-export const createStockMovement = async (productId: number, quantity: number): Promise<void> => {
-  await api.post(`/products/${productId}/stock-movements`, { quantity });
+export type StockMovementType = 'in' | 'out';
+
+export type StockMovementPayload = {
+  type: StockMovementType;
+  qty: number;
+  note?: string;
+};
+
+export const createStockMovement = async (productId: number, payload: StockMovementPayload): Promise<ApiResponse<string>> => {
+  const response = await api.post<ApiResponse<string>>(`/products/${productId}/stock-movements`, payload);
+  return response.data;
 }
 
-export const getStockMovementsByProductId = async (productId: number): Promise<any[]> => {
-  const response = await api.get<any[]>(`/products/${productId}/stock-movements`);
-  return response.data;
+export type StockMovement = {
+  id: number;
+  type: StockMovementType;
+  qty: number;
+  note: string;
+  created_at: string;
+};
+
+// Struct StockMovements di backend tidak punya json tag, jadi key-nya PascalCase.
+type StockMovementRaw = {
+  ID: number;
+  ProductId: number;
+  Type: StockMovementType;
+  Qty: number;
+  Note: string;
+  CreatedAt: string;
+};
+
+export const getStockMovementsByProductId = async (productId: number | string): Promise<StockMovement[]> => {
+  const response = await api.get<ApiResponse<StockMovementRaw[] | null>>(`/products/${productId}/stock-movements`);
+  return (response.data.data ?? []).map((m) => ({
+    id: m.ID,
+    type: m.Type,
+    qty: m.Qty,
+    note: m.Note,
+    created_at: m.CreatedAt,
+  }));
 }   
 
 

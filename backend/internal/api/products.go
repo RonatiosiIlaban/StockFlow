@@ -162,6 +162,9 @@ func (ca *productsApi) DELETE(ctx fiber.Ctx) error {
 
 	err = ca.productServices.DeleteProduct(c, product.ID)
 	if err != nil {
+		if errors.Is(err, domain.ErrProductHasHistory) {
+			return ctx.Status(http.StatusConflict).JSON(dto.ResponseError(err.Error(), http.StatusConflict))
+		}
 		return ctx.Status(http.StatusInternalServerError).JSON(dto.ResponseError(err.Error(), http.StatusInternalServerError))
 	}
 

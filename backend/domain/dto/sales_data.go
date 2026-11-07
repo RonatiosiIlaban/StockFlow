@@ -13,13 +13,22 @@ type SalesOrderItem struct {
 	UnitPrice int    `json:"unit_price" validate:"required,gt=0"`
 }
 
+type SalesOrderFilter struct {
+	Search string `query:"search"`
+	Status string `query:"status"`
+	Sort   string `query:"sort"`
+	Page   int    `query:"page"`
+	Limit  int    `query:"limit"`
+}
+
 type SalesOrderData struct {
-	ID        uint                 `json:"id"`
-	Customer  string               `json:"customer"`
-	Status    string               `json:"status"`
-	Total     int                  `json:"total"`
-	CreatedAt time.Time            `json:"created_at"`
-	Items     []SalesOrderItemData `json:"items"`
+	ID          uint                 `json:"id"`
+	Customer    string               `json:"customer"`
+	Status      string               `json:"status"`
+	Total       int                  `json:"total"`
+	CreatedAt   time.Time            `json:"created_at"`
+	CancelledAt *time.Time           `json:"cancelled_at,omitempty"`
+	Items       []SalesOrderItemData `json:"items"`
 }
 
 type SalesOrderItemData struct {

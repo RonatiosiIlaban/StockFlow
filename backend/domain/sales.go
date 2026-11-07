@@ -43,9 +43,11 @@ type IdempotencyKeys struct {
 type SalesOrdersRepository interface {
 	CreateSalesOrderWithIdempotency(ctx context.Context, order *SalesOrders, key string) (replayed bool, err error)
 	CancelSalesOrder(ctx context.Context, id string) error
+	FindAll(ctx context.Context, filter dto.SalesOrderFilter) ([]SalesOrders, dto.Pagination, error)
 }
 
 type SalesServices interface {
 	CreateSalesOrderWithIdempotency(ctx context.Context, req dto.CreateSalesOrderRequest, key string) (dto.SalesOrderData, bool, error)
 	CancelSalesOrder(ctx context.Context, id string) error
+	GetSalesOrders(ctx context.Context, filter dto.SalesOrderFilter) ([]dto.SalesOrderData, dto.Pagination, error)
 }

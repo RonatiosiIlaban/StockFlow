@@ -22,12 +22,35 @@ func NewSalesApi(app *fiber.App, salesServices domain.SalesServices) {
 		salesServices: salesServices,
 	}
 
+	app.Get("/api/sales-orders", ca.GET)
 	app.Post("/api/sales-orders", ca.CREATE)
 	app.Post("/api/sales-orders/:id/cancel", ca.Cancel)
 }
 
+func (ca *salesApi) GET(ctx fiber.Ctx) error {
+	var filter dto.SalesOrderFilter
+	if err := ctx.Bind().Query(&filter); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(dto.ResponseError("query tidak valid: "+err.Error(), http.StatusBadRequest))
+	}
+
+	filter.Search = strings.TrimSpace(filter.Search)
+	filter.Status = strings.ToUpper(strings.TrimSpace(filter.Status))
+	if filter.Status != "" && filter.Status != "CREATED" && filter.Status != "CANCELLED" {
+		return ctx.Status(http.StatusBadRequest).JSON(dto.ResponseError("status harus CREATED atau CANCELLED", http.StatusBadRequest))
+	}
+
+	c, cancel := context.WithTimeout(ctx.Context(), 10*time.Second)
+	defer cancel()
+
+	orders, meta, err := ca.salesServices.GetSalesOrders(c, filter)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(dto.ResponseError(err.Error(), http.StatusInternalServerError))
+	}
+
+	return ctx.JSON(dto.ResponseSuccess(orders, meta, http.StatusOK))
+}
+
 func (ca *salesApi) CREATE(ctx fiber.Ctx) error {
-	// 1. Cek header dulu
 	idempotencyKey := strings.TrimSpace(ctx.Get("Idempotency-Key"))
 	if idempotencyKey == "" {
 		return ctx.Status(http.StatusBadRequest).JSON(dto.ResponseError("Idempotency-Key header is required", http.StatusBadRequest))
@@ -36,7 +59,6 @@ func (ca *salesApi) CREATE(ctx fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).JSON(dto.ResponseError("Idempotency-Key maksimal 255 karakter", http.StatusBadRequest))
 	}
 
-	// 2. Bind + validasi body
 	var req dto.CreateSalesOrderRequest
 	if err := ctx.Bind().Body(&req); err != nil {
 		return ctx.Status(http.StatusBadRequest).JSON(dto.ResponseError("Invalid request body: "+err.Error(), http.StatusBadRequest))
@@ -45,7 +67,6 @@ func (ca *salesApi) CREATE(ctx fiber.Ctx) error {
 		return ctx.Status(http.StatusBadRequest).JSON(dto.ResponseErrorWithData("request body tidak valid", fails, http.StatusBadRequest))
 	}
 
-	// 3. Panggil service
 	c, cancel := context.WithTimeout(ctx.Context(), 10*time.Second)
 	defer cancel()
 
@@ -63,7 +84,6 @@ func (ca *salesApi) CREATE(ctx fiber.Ctx) error {
 		}
 	}
 
-	// 4. Response
 	if replayed {
 		ctx.Set("Idempotent-Replayed", "true")
 		return ctx.Status(http.StatusOK).JSON(dto.CreateResponseSuccess(order, "Sales order already created", http.StatusOK))

@@ -53,12 +53,13 @@ func toSalesOrderData(o domain.SalesOrders) dto.SalesOrderData {
 		})
 	}
 	return dto.SalesOrderData{
-		ID:        o.ID,
-		Customer:  o.Customer,
-		Status:    o.Status,
-		Total:     o.Total,
-		CreatedAt: o.CreatedAt,
-		Items:     items,
+		ID:          o.ID,
+		Customer:    o.Customer,
+		Status:      o.Status,
+		Total:       o.Total,
+		CreatedAt:   o.CreatedAt,
+		CancelledAt: o.CancelledAt,
+		Items:       items,
 	}
 }
 
@@ -91,4 +92,17 @@ func (s *salesServices) CreateSalesOrderWithIdempotency(ctx context.Context, req
 
 func (s *salesServices) CancelSalesOrder(ctx context.Context, id string) error {
 	return s.salesOrdersRepository.CancelSalesOrder(ctx, id)
+}
+
+func (s *salesServices) GetSalesOrders(ctx context.Context, filter dto.SalesOrderFilter) ([]dto.SalesOrderData, dto.Pagination, error) {
+	orders, meta, err := s.salesOrdersRepository.FindAll(ctx, filter)
+	if err != nil {
+		return nil, dto.Pagination{}, err
+	}
+
+	result := make([]dto.SalesOrderData, 0, len(orders))
+	for _, o := range orders {
+		result = append(result, toSalesOrderData(o))
+	}
+	return result, meta, nil
 }
